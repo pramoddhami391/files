@@ -7,4 +7,6 @@ gtts
 pillow
 numpy
 opencv-python-headless
+google-generativeai
+
 

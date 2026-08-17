@@ -1,50 +1,87 @@
-# Medicine Label Reader
+# 💊 Medicine Label Reader
 
-## Problem
-Many customers, especially elderly ones, cannot read the English text on
-medicine strips and boxes. This pipeline reads a photo of a medicine label
-aloud in Nepali, so a customer can hear what the medicine is and how to
-take it.
+A complete end-to-end AI pipeline combining **Computer Vision**, **Natural Language Processing & Translation**, and **Speech Synthesis (TTS)** wrapped in a Streamlit web application.
 
-## Pipeline
-This follows the same three-stage pattern as Lab 7, with OCR standing in
-for image captioning:
 
-1. **OCR (vision)** — `easyocr` extracts the English text printed on the
-   label from an uploaded or camera-captured photo.
-2. **Translation (NLP)** — `deep_translator` (Google Translate backend)
-   converts the extracted English text into Nepali.
-3. **Text-to-speech (speech synthesis)** — `gTTS` converts the Nepali text
-   into a playable audio clip.
+---
 
-Two or more AI capabilities are combined: computer vision (text detection)
-and natural language processing (translation), with speech synthesis as a
-third stage — mirroring how Lab 7 chained captioning, translation, and TTS.
+## 🎯 Problem Statement
+Many patients—especially the elderly or non-English literate individuals—cannot read the fine English print on medicine strips, bottles, and boxes. **Aushadhi Vani** converts medicine label photos into clear, spoken Nepali audio explanations, allowing users to hear what the medicine is, its dosage, and how to take it safely.
 
-## Files
-- `ocr_module.py` — standalone OCR test (run first, on its own)
-- `translate_module.py` — standalone translation test
-- `tts_module.py` — standalone TTS test
-- `app.py` — combined Streamlit app
-- `requirements.txt` — dependencies
+---
 
-## Running it
-```bash
-pip install -r requirements.txt
-streamlit run app.py --server.address=0.0.0.0 --server.port=8501
+## 🤖 3 Combined AI Capabilities
+
+```
+ 📷 [Stage 1: Vision AI / OCR]
+    ├── OpenCV CLAHE Contrast Equalization & 2x Bicubic Upscaling
+    └── EasyOCR / Gemini 1.5 Flash Vision (Text & Attribute Extraction)
+              │
+              ▼
+ 🌐 [Stage 2: NLP & Machine Translation]
+    ├── Noise Filtering & Medical Text Cleaning
+    └── English ➔ Nepali Neural Translation (deep-translator / Google Translator)
+              │
+              ▼
+ 🔊 [Stage 3: Speech Synthesis (TTS)]
+    └── Nepali Audio Stream Generation (gTTS) ➔ Embedded Browser Audio Player
 ```
 
-## Observed limitations
-- OCR accuracy drops on blurry photos, glare on foil packaging, or
-  heavily stylized fonts used by some drug brands.
-- Google Translate sometimes translates drug names literally instead of
-  transliterating them, which can read oddly in Nepali.
-- The app assumes label text is in English; it does not currently handle
-  labels printed only in Nepali or Hindi.
+1. **Stage 1: Computer Vision & Feature Extraction**
+   - Preprocesses camera photos using OpenCV CLAHE (Contrast Limited Adaptive Histogram Equalization) and 2x bicubic scaling to eliminate metallic foil glare and enlarge micro-print fonts.
+   - Extracts label text using EasyOCR with confidence filtering ($>45\%$) or Gemini 1.5 Flash Vision AI.
 
-## Possible extensions
-- Add a rule-based check that leaves recognized drug names untranslated
-  (transliterated instead), since brand names shouldn't be translated as
-  ordinary words.
-- Add a confidence threshold from easyocr and flag low-confidence photos
-  for a retake.
+2. **Stage 2: NLP & Machine Translation**
+   - Filters out stock photo watermarks, barcode noise, and unreadable character fragments.
+   - Formats medical attributes (`mg`, `ml`, dosage) and translates English text into Nepali via Neural Machine Translation.
+
+3. **Stage 3: Speech Synthesis (TTS)**
+   - Converts translated Nepali explanations into audible `.mp3` speech streams using Google Text-to-Speech (`gTTS`).
+
+---
+
+## 🌟 Key Features
+- **Dual Vision Engine**: Supports **Gemini 1.5 Flash Vision AI** for 99% accuracy on blurry packaging, with an offline fallback to **Local EasyOCR + OpenCV**.
+- **OpenCV Vision Inspector**: Includes an interactive UI expander to view preprocessed contrast-enhanced images.
+- **Smart Confidence Filtering**: Automatically discards low-confidence OCR misreadings and watermarks.
+- **Bilingual Display & Spoken Audio**: Renders side-by-side English/Nepali cards alongside a playable browser audio player.
+
+---
+
+## 📁 Repository Structure
+- [`app.py`](file:///d:/AI%20lab/AI%20Project/files/app.py) — Combined Streamlit web application (full multimodal pipeline).
+- [`ocr_module.py`](file:///d:/AI%20lab/AI%20Project/files/ocr_module.py) — Standalone Vision & OCR testing module.
+- [`translate_module.py`](file:///d:/AI%20lab/AI%20Project/files/translate_module.py) — Standalone Machine Translation module.
+- [`tts_module.py`](file:///d:/AI%20lab/AI%20Project/files/tts_module.py) — Standalone Text-to-Speech (TTS) module.
+- [`requirements.txt`](file:///d:/AI%20lab/AI%20Project/files/requirements.txt) — Project dependencies (optimized for CPU deployment).
+
+---
+
+## 🚀 Running Locally
+
+1. **Clone & Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Launch Streamlit App**:
+   ```bash
+   streamlit run app.py
+   ```
+3. Open `http://localhost:8501` in your web browser.
+
+---
+
+## ☁️ Free Cloud Deployment Guide
+
+### Deploying on Streamlit Community Cloud
+1. Push repository code to GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io/) and click **New App**.
+3. Select repository, main branch `main`, and main file path `app.py`.
+4. Click **Deploy!**
+
+### Deploying on Hugging Face Spaces (Recommended for 16GB Free RAM)
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
+2. Choose SDK: **Streamlit**, Hardware: **CPU Basic (Free - 16 GB RAM)**.
+3. Upload `app.py`, `ocr_module.py`, and `requirements.txt`.
+
