@@ -5,3 +5,4 @@ gtts
 pillow
 numpy
 torch
+opencv-python-headless
