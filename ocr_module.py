@@ -10,7 +10,6 @@ import easyocr
 import cv2
 import re
 import os
-
 from PIL import Image
 import numpy as np
 
@@ -34,7 +33,38 @@ def clean_ocr_text(text):
     text = re.sub(r'(?<=[a-zA-Z])0(?=[a-zA-Z])', 'o', text)
     text = re.sub(r'(?<=[a-zA-Z])1(?=[a-zA-Z])', 'l', text)
     text = re.sub(r'(\d+)\s*(mg|ml|mcg|g)\b', r'\1 \2', text, flags=re.IGNORECASE)
-    return text
+    return text.strip()
+
+
+def is_valid_ocr_fragment(text):
+    """Filter out watermarks, barcode noise, and unreadable gibberish."""
+    text_clean = text.strip()
+    if len(text_clean) < 2:
+        return False
+    
+    watermarks = ['shutterstock', 'stock', 'photo', 'vector', 'adobe', 'depositphotos', 'alamy']
+    if any(w in text_clean.lower() for w in watermarks):
+        return False
+
+    if re.match(r'^\d{8,}$', text_clean):
+        return False
+
+    if re.search(r'[@"~`$^&*={}\[\]\\]', text_clean):
+        return False
+
+    return True
+
+
+def filter_ocr_results(raw_ocr_output, min_confidence=0.45):
+    clean_fragments = []
+    for item in raw_ocr_output:
+        bbox, text, score = item
+        if score >= min_confidence and is_valid_ocr_fragment(text):
+            cleaned = clean_ocr_text(text)
+            if cleaned:
+                clean_fragments.append((cleaned, score))
+    return clean_fragments
+
 
 # Step 1: Load the OCR reader
 reader = easyocr.Reader(['en'])
@@ -42,27 +72,26 @@ reader = easyocr.Reader(['en'])
 # Step 2: Point this at a photo of a medicine strip/box
 IMAGE_PATH = os.path.join(BASE_DIR, "medicine_label.jpg")
 
-
-
 # Step 3: Preprocess image
 processed_img = preprocess_image_path(IMAGE_PATH)
 
-# Step 4: Run OCR with tuned sensitivity settings
-results = reader.readtext(
+# Step 4: Run OCR with detail=1 to get confidence scores
+raw_results = reader.readtext(
     processed_img,
-    detail=0,
+    detail=1,
     mag_ratio=2.0,
-    text_threshold=0.4,
-    low_text=0.3,
-    link_threshold=0.4,
-    contrast_ths=0.1,
     adjust_contrast=0.5
 )
 
-# Step 5: Clean and join detected text
-raw_text = " ".join(results)
-extracted_text = clean_ocr_text(raw_text)
+# Step 5: Filter out noise and low-confidence detections
+filtered_results = filter_ocr_results(raw_results, min_confidence=0.45)
 
-print("Raw OCR fragments:", results)
-print("Extracted Text:", extracted_text)
+print("\n--- Filtered OCR Results ---")
+for text, score in filtered_results:
+    print(f"[{score:.0%}] {text}")
+
+clean_text_list = [t for t, s in filtered_results]
+print("\nFinal Clean Extracted Text:")
+print(" | ".join(clean_text_list))
+
 

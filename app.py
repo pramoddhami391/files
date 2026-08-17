@@ -52,7 +52,46 @@ def clean_ocr_text(text):
     text = re.sub(r'(?<=[a-zA-Z])1(?=[a-zA-Z])', 'l', text)
     # Ensure standard spacing between numbers and dosage units (e.g., 500mg -> 500 mg)
     text = re.sub(r'(\d+)\s*(mg|ml|mcg|g)\b', r'\1 \2', text, flags=re.IGNORECASE)
-    return text
+    return text.strip()
+
+
+def is_valid_ocr_fragment(text):
+    """Filter out watermarks, barcode noise, and unreadable gibberish."""
+    text_clean = text.strip()
+    if len(text_clean) < 2:
+        return False
+    
+    # Filter stock photo watermarks
+    watermarks = ['shutterstock', 'stock', 'photo', 'vector', 'adobe', 'depositphotos', 'alamy']
+    if any(w in text_clean.lower() for w in watermarks):
+        return False
+
+    # Filter pure long barcode numbers (> 7 digits)
+    if re.match(r'^\d{8,}$', text_clean):
+        return False
+
+    # Filter strings with weird symbols like @, ", ~, `
+    if re.search(r'[@"~`$^&*={}\[\]\\]', text_clean):
+        return False
+
+    return True
+
+
+def filter_ocr_results(raw_ocr_output, min_confidence=0.45):
+    """
+    Extracts high-confidence text fragments and filters out noise artifacts.
+    Returns a list of clean text strings and structured tuples (text, score).
+    """
+    clean_fragments = []
+    scored_fragments = []
+    for item in raw_ocr_output:
+        bbox, text, score = item
+        if score >= min_confidence and is_valid_ocr_fragment(text):
+            cleaned = clean_ocr_text(text)
+            if cleaned:
+                clean_fragments.append(cleaned)
+                scored_fragments.append((cleaned, score))
+    return clean_fragments, scored_fragments
 
 
 # Cache the OCR reader so it only loads once per session
@@ -64,6 +103,17 @@ reader = load_reader()
 
 st.title("Medicine Label Reader")
 st.write("Upload a photo of a medicine strip or box to hear its details in Nepali.")
+
+# Sidebar Settings
+st.sidebar.header("⚙️ OCR Tuning Controls")
+min_confidence = st.sidebar.slider(
+    "Confidence Threshold",
+    min_value=0.10,
+    max_value=0.90,
+    value=0.45,
+    step=0.05,
+    help="Higher values remove background noise and gibberish; lower values include fainter text."
+)
 
 uploaded_file = st.file_uploader("Upload a medicine label", type=["jpg", "jpeg", "png"])
 camera_file = st.camera_input("Or capture from camera")
@@ -83,37 +133,46 @@ if image_file:
     # --- Stage 1: OCR (vision) ---
     st.subheader("Extracted text")
     with st.spinner("Reading label..."):
-        # Tuned EasyOCR parameters for small text and low-contrast packaging
-        results = reader.readtext(
+        # Run EasyOCR with detail=1 to get confidence scores per fragment
+        raw_results = reader.readtext(
             processed_img,
-            detail=0,
+            detail=1,
             mag_ratio=2.0,
-            text_threshold=0.4,
-            low_text=0.3,
-            link_threshold=0.4,
-            contrast_ths=0.1,
             adjust_contrast=0.5
         )
-        raw_text = " ".join(results)
-        english_text = clean_ocr_text(raw_text)
+        clean_fragments, scored_fragments = filter_ocr_results(raw_results, min_confidence=min_confidence)
+        english_text = " | ".join(clean_fragments)
 
-    if not english_text.strip():
-        st.warning("No text detected. Try a clearer, well-lit photo.")
+    if not clean_fragments:
+        st.warning("No clear text detected above confidence threshold. Try lowering the Confidence Threshold in the sidebar or using a clearer photo.")
     else:
-        st.write("English:", english_text)
+        st.markdown(f"**Extracted Text ({len(clean_fragments)} key items):**")
+        for txt, score in scored_fragments:
+            st.markdown(f"- **{txt}** *(confidence: {score:.0%})*")
 
         # --- Stage 2: Translation (NLP) ---
         st.subheader("Nepali translation")
         with st.spinner("Translating..."):
-            nepali_text = GoogleTranslator(source='en', target='ne').translate(english_text)
-        st.write("Nepali:", nepali_text)
+            nepali_translations = []
+            for item in clean_fragments:
+                translated_item = GoogleTranslator(source='en', target='ne').translate(item)
+                nepali_translations.append(translated_item)
+            
+            nepali_text_full = " | ".join(nepali_translations)
+
+        st.markdown("**Nepali Details:**")
+        for orig, trans in zip(clean_fragments, nepali_translations):
+            st.markdown(f"- **{trans}** *({orig})*")
 
         # --- Stage 3: Text-to-speech ---
         st.subheader("Listen")
         with st.spinner("Generating audio..."):
-            tts = gTTS(text=nepali_text, lang="ne")
+            # Concatenate Nepali text with clean pauses for natural TTS speech
+            speech_text = ". ".join(nepali_translations)
+            tts = gTTS(text=speech_text, lang="ne")
             mp3_bytes = BytesIO()
             tts.write_to_fp(mp3_bytes)
             mp3_bytes.seek(0)
         st.audio(mp3_bytes.read(), format="audio/mp3")
+
 
