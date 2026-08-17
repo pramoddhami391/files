@@ -84,7 +84,11 @@ image_file = uploaded_file or camera_file
 
 if image_file:
     image = Image.open(image_file).convert("RGB")
-    st.image(image, caption="Selected label", use_container_width=True)
+    try:
+        st.image(image, caption="Selected label", use_container_width=True)
+    except TypeError:
+        st.image(image, caption="Selected label")
+
 
     # --- Stage 1: OCR (vision) ---
     st.subheader("Extracted text")
