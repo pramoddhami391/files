@@ -97,9 +97,7 @@ def filter_ocr_results(raw_ocr_output, min_confidence=0.45):
 # Cache the OCR reader so it only loads once per session
 @st.cache_resource
 def load_reader():
-    return easyocr.Reader(['en'])
-
-reader = load_reader()
+    return easyocr.Reader(['en'], gpu=False)
 
 st.title("Medicine Label Reader")
 st.write("Upload a photo of a medicine strip or box to hear its details in Nepali.")
@@ -132,7 +130,8 @@ if image_file:
 
     # --- Stage 1: OCR (vision) ---
     st.subheader("Extracted text")
-    with st.spinner("Reading label..."):
+    with st.spinner("Loading OCR model and reading label (first run takes 1-2 mins to download weights)..."):
+        reader = load_reader()
         # Run EasyOCR with detail=1 to get confidence scores per fragment
         raw_results = reader.readtext(
             processed_img,
@@ -140,6 +139,7 @@ if image_file:
             mag_ratio=2.0,
             adjust_contrast=0.5
         )
+
         clean_fragments, scored_fragments = filter_ocr_results(raw_results, min_confidence=min_confidence)
         english_text = " | ".join(clean_fragments)
 
