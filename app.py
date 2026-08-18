@@ -9,12 +9,25 @@ Run with:
 import streamlit as st
 import easyocr
 from deep_translator import GoogleTranslator
+from deep_translator.exceptions import TranslationNotFound
 from gtts import gTTS
 from PIL import Image
 from io import BytesIO
 import numpy as np
 import cv2
 import re
+
+translator = GoogleTranslator(source='en', target='ne')
+
+
+def translate_to_nepali(text):
+    """Safely translate text fragment to Nepali, keeping abbreviations intact on error."""
+    try:
+        return translator.translate(text)
+    except TranslationNotFound:
+        return text
+    except Exception:
+        return text
 
 
 def preprocess_image(pil_image):
@@ -112,9 +125,10 @@ if image_file:
         # --- Stage 2: Translation (NLP) ---
         st.subheader("Nepali translation")
         with st.spinner("Translating..."):
-            nepali_translations = [GoogleTranslator(source='en', target='ne').translate(item) for item in clean_fragments]
+            nepali_translations = [translate_to_nepali(item) for item in clean_fragments]
             nepali_text = " ".join(nepali_translations)
         st.write("Nepali:", nepali_text)
+
 
         # --- Stage 3: Text-to-speech ---
         st.subheader("Listen")
