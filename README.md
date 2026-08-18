@@ -5,12 +5,12 @@ A complete end-to-end AI pipeline combining **Computer Vision**, **Natural Langu
 
 ---
 
-## 🎯 Problem Statement
+##  Problem Statement
 Many patients—especially the elderly or non-English literate individuals—cannot read the fine English print on medicine strips, bottles, and boxes. **Aushadhi Vani** converts medicine label photos into clear, spoken Nepali audio explanations, allowing users to hear what the medicine is, its dosage, and how to take it safely.
 
 ---
 
-## 🤖 3 Combined AI Capabilities
+##  3 Combined AI Capabilities
 
 ```
  📷 [Stage 1: Vision AI / OCR]
@@ -46,14 +46,7 @@ Many patients—especially the elderly or non-English literate individuals—can
 - **Smart Confidence Filtering**: Automatically discards low-confidence OCR misreadings and watermarks.
 - **Bilingual Display & Spoken Audio**: Renders side-by-side English/Nepali cards alongside a playable browser audio player.
 
----
 
-## 📁 Repository Structure
-- [`app.py`](file:///d:/AI%20lab/AI%20Project/files/app.py) — Combined Streamlit web application (full multimodal pipeline).
-- [`ocr_module.py`](file:///d:/AI%20lab/AI%20Project/files/ocr_module.py) — Standalone Vision & OCR testing module.
-- [`translate_module.py`](file:///d:/AI%20lab/AI%20Project/files/translate_module.py) — Standalone Machine Translation module.
-- [`tts_module.py`](file:///d:/AI%20lab/AI%20Project/files/tts_module.py) — Standalone Text-to-Speech (TTS) module.
-- [`requirements.txt`](file:///d:/AI%20lab/AI%20Project/files/requirements.txt) — Project dependencies (optimized for CPU deployment).
 
 ---
 
@@ -71,14 +64,6 @@ Many patients—especially the elderly or non-English literate individuals—can
 3. Open `http://localhost:8501` in your web browser.
 
 ---
-
-## ☁️ Free Cloud Deployment Guide
-
-### Deploying on Streamlit Community Cloud
-1. Push repository code to GitHub.
-2. Go to [share.streamlit.io](https://share.streamlit.io/) and click **New App**.
-3. Select repository, main branch `main`, and main file path `app.py`.
-4. Click **Deploy!**
 
 ### Deploying on Hugging Face Spaces (Recommended for 16GB Free RAM)
 1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
